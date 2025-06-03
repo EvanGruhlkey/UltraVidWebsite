@@ -156,14 +156,21 @@ def get_platform_specific_options(url):
         'noplaylist': True,
         'merge_output_format': 'mp4',
         'geo_bypass': True,
+        'geo_bypass_country': 'US',  # Force US region
         'logger': MyLogger(),
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
+            'User-Agent': 'Mozilla/5.0',  # Simplified User-Agent
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
             'Accept-Encoding': 'gzip, deflate',
         }
     }
+
+    # Add proxy configuration if available
+    proxy_url = os.environ.get('PROXY_URL')
+    if proxy_url:
+        options['proxy'] = proxy_url
+        logger.info("Using proxy for downloads")
 
     # Platform-specific configurations (simplified)
     if 'tiktok.com' in url:
@@ -171,7 +178,10 @@ def get_platform_specific_options(url):
             'format': 'best[height<=720]/best',  # Lower quality for TikTok
             'referer': 'https://www.tiktok.com/',
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
+                'User-Agent': 'Mozilla/5.0',
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate',
                 'Referer': 'https://www.tiktok.com/',
             }
         })
@@ -182,15 +192,11 @@ def get_platform_specific_options(url):
                 'format': 'best[height<=1080]/best',
                 'referer': 'https://www.youtube.com/shorts/',
                 'http_headers': {
-                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'User-Agent': 'Mozilla/5.0',
+                    'Accept': '*/*',
                     'Accept-Language': 'en-US,en;q=0.9',
                     'Accept-Encoding': 'gzip, deflate',
                     'Referer': 'https://www.youtube.com/shorts/',
-                    'Origin': 'https://www.youtube.com',
-                    'Sec-Fetch-Site': 'same-origin',
-                    'Sec-Fetch-Mode': 'cors',
-                    'Sec-Fetch-Dest': 'empty',
                 },
                 'extractor_args': {
                     'youtube': {
@@ -200,74 +206,7 @@ def get_platform_specific_options(url):
                         'player_params': {
                             'hl': 'en',
                             'gl': 'US',
-                        },
-                        'player_playlist': True,
-                        'player_playlist_items': '1',
-                        'player_playlist_reverse': False,
-                        'player_playlist_random': False,
-                        'player_playlist_shuffle': False,
-                        'player_playlist_start': 1,
-                        'player_playlist_end': 1,
-                        'player_playlist_min_views': 0,
-                        'player_playlist_max_views': None,
-                        'player_playlist_min_likes': 0,
-                        'player_playlist_max_likes': None,
-                        'player_playlist_min_dislikes': 0,
-                        'player_playlist_max_dislikes': None,
-                        'player_playlist_min_comments': 0,
-                        'player_playlist_max_comments': None,
-                        'player_playlist_min_duration': 0,
-                        'player_playlist_max_duration': None,
-                        'player_playlist_min_upload_date': None,
-                        'player_playlist_max_upload_date': None,
-                        'player_playlist_min_views_per_day': 0,
-                        'player_playlist_max_views_per_day': None,
-                        'player_playlist_min_likes_per_day': 0,
-                        'player_playlist_max_likes_per_day': None,
-                        'player_playlist_min_dislikes_per_day': 0,
-                        'player_playlist_max_dislikes_per_day': None,
-                        'player_playlist_min_comments_per_day': 0,
-                        'player_playlist_max_comments_per_day': None,
-                        'player_playlist_min_duration_per_day': 0,
-                        'player_playlist_max_duration_per_day': None,
-                        'player_playlist_min_upload_date_per_day': None,
-                        'player_playlist_max_upload_date_per_day': None,
-                        'player_playlist_min_views_per_week': 0,
-                        'player_playlist_max_views_per_week': None,
-                        'player_playlist_min_likes_per_week': 0,
-                        'player_playlist_max_likes_per_week': None,
-                        'player_playlist_min_dislikes_per_week': 0,
-                        'player_playlist_max_dislikes_per_week': None,
-                        'player_playlist_min_comments_per_week': 0,
-                        'player_playlist_max_comments_per_week': None,
-                        'player_playlist_min_duration_per_week': 0,
-                        'player_playlist_max_duration_per_week': None,
-                        'player_playlist_min_upload_date_per_week': None,
-                        'player_playlist_max_upload_date_per_week': None,
-                        'player_playlist_min_views_per_month': 0,
-                        'player_playlist_max_views_per_month': None,
-                        'player_playlist_min_likes_per_month': 0,
-                        'player_playlist_max_likes_per_month': None,
-                        'player_playlist_min_dislikes_per_month': 0,
-                        'player_playlist_max_dislikes_per_month': None,
-                        'player_playlist_min_comments_per_month': 0,
-                        'player_playlist_max_comments_per_month': None,
-                        'player_playlist_min_duration_per_month': 0,
-                        'player_playlist_max_duration_per_month': None,
-                        'player_playlist_min_upload_date_per_month': None,
-                        'player_playlist_max_upload_date_per_month': None,
-                        'player_playlist_min_views_per_year': 0,
-                        'player_playlist_max_views_per_year': None,
-                        'player_playlist_min_likes_per_year': 0,
-                        'player_playlist_max_likes_per_year': None,
-                        'player_playlist_min_dislikes_per_year': 0,
-                        'player_playlist_max_dislikes_per_year': None,
-                        'player_playlist_min_comments_per_year': 0,
-                        'player_playlist_max_comments_per_year': None,
-                        'player_playlist_min_duration_per_year': 0,
-                        'player_playlist_max_duration_per_year': None,
-                        'player_playlist_min_upload_date_per_year': None,
-                        'player_playlist_max_upload_date_per_year': None,
+                        }
                     }
                 }
             })
@@ -277,15 +216,11 @@ def get_platform_specific_options(url):
                 'format': 'best[height<=1080]/best',
                 'referer': 'https://www.youtube.com/',
                 'http_headers': {
-                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'User-Agent': 'Mozilla/5.0',
+                    'Accept': '*/*',
                     'Accept-Language': 'en-US,en;q=0.9',
                     'Accept-Encoding': 'gzip, deflate',
                     'Referer': 'https://www.youtube.com/',
-                    'Origin': 'https://www.youtube.com',
-                    'Sec-Fetch-Site': 'same-origin',
-                    'Sec-Fetch-Mode': 'cors',
-                    'Sec-Fetch-Dest': 'empty',
                 },
                 'extractor_args': {
                     'youtube': {
@@ -304,7 +239,10 @@ def get_platform_specific_options(url):
             'format': 'best[height<=720]/best',  # Lower quality for Instagram
             'referer': 'https://www.instagram.com/',
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
+                'User-Agent': 'Mozilla/5.0',
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate',
                 'Referer': 'https://www.instagram.com/',
             }
         })
@@ -312,6 +250,13 @@ def get_platform_specific_options(url):
         options.update({
             'format': 'best[height<=720]/best',
             'referer': 'https://twitter.com/',
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0',
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate',
+                'Referer': 'https://twitter.com/',
+            }
         })
 
     return options
