@@ -144,10 +144,10 @@ def get_platform_specific_options(url):
         'nocheckcertificate': True,
         'ignoreerrors': False,
         'no_color': True,
-        'extractor_retries': 3,
-        'socket_timeout': 30,
-        'retries': 5,
-        'fragment_retries': 5,
+        'extractor_retries': 5,  # Increased retries
+        'socket_timeout': 60,    # Increased timeout
+        'retries': 10,           # Increased retries
+        'fragment_retries': 10,  # Increased retries
         'skip_unavailable_fragments': True,
         'keepvideo': False,
         'writethumbnail': False,
@@ -159,11 +159,16 @@ def get_platform_specific_options(url):
         'geo_bypass_country': 'US',
         'logger': MyLogger(),
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
-            'Accept': '*/*',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
             'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive'
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1'
         }
     }
 
@@ -174,29 +179,27 @@ def get_platform_specific_options(url):
                 'format': 'best[height<=1080]/best',
                 'referer': 'https://www.youtube.com/shorts/',
                 'http_headers': {
-                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
-                    'Accept': '*/*',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                     'Accept-Language': 'en-US,en;q=0.9',
                     'Accept-Encoding': 'gzip, deflate',
                     'Referer': 'https://www.youtube.com/shorts/',
                     'Origin': 'https://www.youtube.com',
                     'Connection': 'keep-alive',
-                    'X-YouTube-Client-Name': '2',
-                    'X-YouTube-Client-Version': '2.20240101.01.00'
+                    'Upgrade-Insecure-Requests': '1',
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'same-origin',
+                    'Sec-Fetch-User': '?1'
                 },
                 'extractor_args': {
                     'youtube': {
                         'skip': ['dash', 'hls'],
-                        'player_client': ['android', 'web'],
+                        'player_client': ['web'],
                         'player_skip': ['js', 'configs', 'webpage'],
                         'player_params': {
                             'hl': 'en',
                             'gl': 'US',
-                            'client': 'ANDROID',
-                            'client_version': '14.01.01',
-                            'device': 'iPhone',
-                            'os_version': '14.8',
-                            'os': 'iOS'
                         }
                     }
                 }
@@ -206,29 +209,27 @@ def get_platform_specific_options(url):
                 'format': 'best[height<=1080]/best',
                 'referer': 'https://www.youtube.com/',
                 'http_headers': {
-                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
-                    'Accept': '*/*',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                     'Accept-Language': 'en-US,en;q=0.9',
                     'Accept-Encoding': 'gzip, deflate',
                     'Referer': 'https://www.youtube.com/',
                     'Origin': 'https://www.youtube.com',
                     'Connection': 'keep-alive',
-                    'X-YouTube-Client-Name': '2',
-                    'X-YouTube-Client-Version': '2.20240101.01.00'
+                    'Upgrade-Insecure-Requests': '1',
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'same-origin',
+                    'Sec-Fetch-User': '?1'
                 },
                 'extractor_args': {
                     'youtube': {
                         'skip': ['dash', 'hls'],
-                        'player_client': ['android', 'web'],
+                        'player_client': ['web'],
                         'player_skip': ['js', 'configs', 'webpage'],
                         'player_params': {
                             'hl': 'en',
                             'gl': 'US',
-                            'client': 'ANDROID',
-                            'client_version': '14.01.01',
-                            'device': 'iPhone',
-                            'os_version': '14.8',
-                            'os': 'iOS'
                         }
                     }
                 }
@@ -238,13 +239,18 @@ def get_platform_specific_options(url):
             'format': 'best[height<=720]/best',
             'referer': 'https://www.tiktok.com/',
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
-                'Accept': '*/*',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Accept-Encoding': 'gzip, deflate',
                 'Referer': 'https://www.tiktok.com/',
                 'Origin': 'https://www.tiktok.com',
-                'Connection': 'keep-alive'
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'same-origin',
+                'Sec-Fetch-User': '?1'
             }
         })
     elif 'instagram.com' in url:
@@ -252,13 +258,18 @@ def get_platform_specific_options(url):
             'format': 'best[height<=720]/best',
             'referer': 'https://www.instagram.com/',
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
-                'Accept': '*/*',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Accept-Encoding': 'gzip, deflate',
                 'Referer': 'https://www.instagram.com/',
                 'Origin': 'https://www.instagram.com',
-                'Connection': 'keep-alive'
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'same-origin',
+                'Sec-Fetch-User': '?1'
             }
         })
     elif 'twitter.com' in url or 'x.com' in url:
@@ -266,13 +277,18 @@ def get_platform_specific_options(url):
             'format': 'best[height<=720]/best',
             'referer': 'https://twitter.com/',
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
-                'Accept': '*/*',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Accept-Encoding': 'gzip, deflate',
                 'Referer': 'https://twitter.com/',
                 'Origin': 'https://twitter.com',
-                'Connection': 'keep-alive'
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'same-origin',
+                'Sec-Fetch-User': '?1'
             }
         })
 
@@ -315,27 +331,29 @@ def download_video():
         ydl_opts = get_platform_specific_options(url)
         ydl_opts['outtmpl'] = os.path.join(temp_dir, '%(title).50s.%(ext)s')
         
-        # Production-specific timeout settings
-        ydl_opts.update({
-            'socket_timeout': 60,
-            'retries': 3,
-            'fragment_retries': 3,
-            'extractor_retries': 2,
-            'skip_unavailable_fragments': True,
-            'quiet': True,
-            'no_warnings': True,
-        })
-
+        # Add a small delay before starting the download
+        time.sleep(2)
+        
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
                 logger.info("Extracting video information...")
                 
-                # Single attempt for info extraction with timeout
-                try:
-                    info = ydl.extract_info(url, download=False)
-                except Exception as e:
-                    logger.error(f"Info extraction failed: {str(e)}")
-                    return jsonify({'error': 'Could not access video. It may be private, geo-blocked, or removed.'}), 400
+                # Add retry logic for info extraction
+                max_retries = 3
+                retry_delay = 5
+                
+                for attempt in range(max_retries):
+                    try:
+                        info = ydl.extract_info(url, download=False)
+                        if info:
+                            break
+                    except Exception as e:
+                        if attempt < max_retries - 1:
+                            logger.warning(f"Attempt {attempt + 1} failed, retrying in {retry_delay} seconds...")
+                            time.sleep(retry_delay)
+                            retry_delay *= 2  # Exponential backoff
+                        else:
+                            raise e
                 
                 if not info:
                     return jsonify({'error': 'Video information could not be extracted'}), 400
@@ -346,6 +364,9 @@ def download_video():
                 video_title = sanitize_filename(raw_title)
                 
                 logger.info(f"Video title: {video_title}")
+                
+                # Add a small delay before downloading
+                time.sleep(2)
                 
                 # Download the video
                 logger.info("Starting video download...")
