@@ -137,17 +137,17 @@ def get_platform_specific_options(url):
     
     # Base options with production-friendly settings
     options = {
-        'format': 'best[height<=1080]/best',  # Simplified format selection
+        'format': 'best[height<=1080]/best',
         'extract_flat': False,
-        'quiet': True,  # Reduce log noise in production
+        'quiet': True,
         'no_warnings': False,
         'nocheckcertificate': True,
         'ignoreerrors': False,
         'no_color': True,
-        'extractor_retries': 3,  # Reduced retries for faster response
-        'socket_timeout': 30,    # Reduced timeout
-        'retries': 5,            # Reduced retries
-        'fragment_retries': 5,   # Reduced retries
+        'extractor_retries': 3,
+        'socket_timeout': 30,
+        'retries': 5,
+        'fragment_retries': 5,
         'skip_unavailable_fragments': True,
         'keepvideo': False,
         'writethumbnail': False,
@@ -156,47 +156,31 @@ def get_platform_specific_options(url):
         'noplaylist': True,
         'merge_output_format': 'mp4',
         'geo_bypass': True,
-        'geo_bypass_country': 'US',  # Force US region
+        'geo_bypass_country': 'US',
         'logger': MyLogger(),
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0',  # Simplified User-Agent
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.9',
             'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive'
         }
     }
 
-    # Add proxy configuration if available
-    proxy_url = os.environ.get('PROXY_URL')
-    if proxy_url:
-        options['proxy'] = proxy_url
-        logger.info("Using proxy for downloads")
-
-    # Platform-specific configurations (simplified)
-    if 'tiktok.com' in url:
-        options.update({
-            'format': 'best[height<=720]/best',  # Lower quality for TikTok
-            'referer': 'https://www.tiktok.com/',
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0',
-                'Accept': '*/*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate',
-                'Referer': 'https://www.tiktok.com/',
-            }
-        })
-    elif 'youtube.com' in url or 'youtu.be' in url:
-        # Handle YouTube Shorts URLs
+    # Platform-specific configurations
+    if 'youtube.com' in url or 'youtu.be' in url:
         if '/shorts/' in url:
             options.update({
                 'format': 'best[height<=1080]/best',
                 'referer': 'https://www.youtube.com/shorts/',
                 'http_headers': {
-                    'User-Agent': 'Mozilla/5.0',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     'Accept': '*/*',
                     'Accept-Language': 'en-US,en;q=0.9',
                     'Accept-Encoding': 'gzip, deflate',
                     'Referer': 'https://www.youtube.com/shorts/',
+                    'Origin': 'https://www.youtube.com',
+                    'Connection': 'keep-alive'
                 },
                 'extractor_args': {
                     'youtube': {
@@ -211,16 +195,17 @@ def get_platform_specific_options(url):
                 }
             })
         else:
-            # Regular YouTube video configuration
             options.update({
                 'format': 'best[height<=1080]/best',
                 'referer': 'https://www.youtube.com/',
                 'http_headers': {
-                    'User-Agent': 'Mozilla/5.0',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     'Accept': '*/*',
                     'Accept-Language': 'en-US,en;q=0.9',
                     'Accept-Encoding': 'gzip, deflate',
                     'Referer': 'https://www.youtube.com/',
+                    'Origin': 'https://www.youtube.com',
+                    'Connection': 'keep-alive'
                 },
                 'extractor_args': {
                     'youtube': {
@@ -234,16 +219,32 @@ def get_platform_specific_options(url):
                     }
                 }
             })
+    elif 'tiktok.com' in url:
+        options.update({
+            'format': 'best[height<=720]/best',
+            'referer': 'https://www.tiktok.com/',
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate',
+                'Referer': 'https://www.tiktok.com/',
+                'Origin': 'https://www.tiktok.com',
+                'Connection': 'keep-alive'
+            }
+        })
     elif 'instagram.com' in url:
         options.update({
-            'format': 'best[height<=720]/best',  # Lower quality for Instagram
+            'format': 'best[height<=720]/best',
             'referer': 'https://www.instagram.com/',
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': '*/*',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Accept-Encoding': 'gzip, deflate',
                 'Referer': 'https://www.instagram.com/',
+                'Origin': 'https://www.instagram.com',
+                'Connection': 'keep-alive'
             }
         })
     elif 'twitter.com' in url or 'x.com' in url:
@@ -251,11 +252,13 @@ def get_platform_specific_options(url):
             'format': 'best[height<=720]/best',
             'referer': 'https://twitter.com/',
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': '*/*',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Accept-Encoding': 'gzip, deflate',
                 'Referer': 'https://twitter.com/',
+                'Origin': 'https://twitter.com',
+                'Connection': 'keep-alive'
             }
         })
 
