@@ -26,6 +26,9 @@ ISSUES_DIR = 'issues'
 if not os.path.exists(ISSUES_DIR):
     os.makedirs(ISSUES_DIR)
 
+# Configure port for production
+port = int(os.environ.get("PORT", 5000))
+
 def sanitize_filename(filename):
     logger.debug(f"Original filename: {filename}")
     
@@ -105,20 +108,13 @@ def install_ffmpeg():
         return False
 
 def check_ffmpeg():
-    """Check if ffmpeg is installed and install it if not"""
+    """Check if ffmpeg is installed"""
     try:
-        # First try to run ffmpeg from the current directory
-        ffmpeg_path = os.path.join(os.getcwd(), 'ffmpeg.exe')
-        if os.path.exists(ffmpeg_path):
-            subprocess.run([ffmpeg_path, '-version'], capture_output=True, check=True)
-            return True
-            
-        # Then try to run ffmpeg from PATH
         subprocess.run(['ffmpeg', '-version'], capture_output=True, check=True)
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
-        logger.warning("ffmpeg not found, attempting to install...")
-        return install_ffmpeg()
+        logger.error("ffmpeg not found. Please ensure ffmpeg is installed on the system.")
+        return False
 
 def debug_formats(url):
     """Debug function to list available formats"""
@@ -453,6 +449,7 @@ def report_issue():
         return jsonify({'error': 'Failed to report issue'}), 500
 
 if __name__ == '__main__':
-    # Determine debug mode based on environment variable
-    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() in ['1', 'true']
-    app.run(debug=debug_mode)
+    # Check for ffmpeg before starting the app
+    if not check_ffmpeg():
+        logger.error("FFmpeg is not installed. The application may not function correctly.")
+    app.run(host='0.0.0.0', port=port)
