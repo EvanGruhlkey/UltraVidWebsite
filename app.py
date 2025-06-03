@@ -179,6 +179,95 @@ def get_platform_specific_options(url):
         options.update({
             'format': 'best[height<=1080]/best',
             'referer': 'https://www.youtube.com/',
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate',
+                'Referer': 'https://www.youtube.com/',
+                'Origin': 'https://www.youtube.com',
+                'Sec-Fetch-Site': 'same-origin',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Dest': 'empty',
+            },
+            'extractor_args': {
+                'youtube': {
+                    'skip': ['dash', 'hls'],
+                    'player_client': ['android', 'web'],
+                    'player_skip': ['js', 'configs', 'webpage'],
+                    'player_params': {
+                        'hl': 'en',
+                        'gl': 'US',
+                    },
+                    'player_playlist': True,
+                    'player_playlist_items': '1',
+                    'player_playlist_reverse': False,
+                    'player_playlist_random': False,
+                    'player_playlist_shuffle': False,
+                    'player_playlist_start': 1,
+                    'player_playlist_end': 1,
+                    'player_playlist_min_views': 0,
+                    'player_playlist_max_views': None,
+                    'player_playlist_min_likes': 0,
+                    'player_playlist_max_likes': None,
+                    'player_playlist_min_dislikes': 0,
+                    'player_playlist_max_dislikes': None,
+                    'player_playlist_min_comments': 0,
+                    'player_playlist_max_comments': None,
+                    'player_playlist_min_duration': 0,
+                    'player_playlist_max_duration': None,
+                    'player_playlist_min_upload_date': None,
+                    'player_playlist_max_upload_date': None,
+                    'player_playlist_min_views_per_day': 0,
+                    'player_playlist_max_views_per_day': None,
+                    'player_playlist_min_likes_per_day': 0,
+                    'player_playlist_max_likes_per_day': None,
+                    'player_playlist_min_dislikes_per_day': 0,
+                    'player_playlist_max_dislikes_per_day': None,
+                    'player_playlist_min_comments_per_day': 0,
+                    'player_playlist_max_comments_per_day': None,
+                    'player_playlist_min_duration_per_day': 0,
+                    'player_playlist_max_duration_per_day': None,
+                    'player_playlist_min_upload_date_per_day': None,
+                    'player_playlist_max_upload_date_per_day': None,
+                    'player_playlist_min_views_per_week': 0,
+                    'player_playlist_max_views_per_week': None,
+                    'player_playlist_min_likes_per_week': 0,
+                    'player_playlist_max_likes_per_week': None,
+                    'player_playlist_min_dislikes_per_week': 0,
+                    'player_playlist_max_dislikes_per_week': None,
+                    'player_playlist_min_comments_per_week': 0,
+                    'player_playlist_max_comments_per_week': None,
+                    'player_playlist_min_duration_per_week': 0,
+                    'player_playlist_max_duration_per_week': None,
+                    'player_playlist_min_upload_date_per_week': None,
+                    'player_playlist_max_upload_date_per_week': None,
+                    'player_playlist_min_views_per_month': 0,
+                    'player_playlist_max_views_per_month': None,
+                    'player_playlist_min_likes_per_month': 0,
+                    'player_playlist_max_likes_per_month': None,
+                    'player_playlist_min_dislikes_per_month': 0,
+                    'player_playlist_max_dislikes_per_month': None,
+                    'player_playlist_min_comments_per_month': 0,
+                    'player_playlist_max_comments_per_month': None,
+                    'player_playlist_min_duration_per_month': 0,
+                    'player_playlist_max_duration_per_month': None,
+                    'player_playlist_min_upload_date_per_month': None,
+                    'player_playlist_max_upload_date_per_month': None,
+                    'player_playlist_min_views_per_year': 0,
+                    'player_playlist_max_views_per_year': None,
+                    'player_playlist_min_likes_per_year': 0,
+                    'player_playlist_max_likes_per_year': None,
+                    'player_playlist_min_dislikes_per_year': 0,
+                    'player_playlist_max_dislikes_per_year': None,
+                    'player_playlist_min_comments_per_year': 0,
+                    'player_playlist_max_comments_per_year': None,
+                    'player_playlist_min_duration_per_year': 0,
+                    'player_playlist_max_duration_per_year': None,
+                    'player_playlist_min_upload_date_per_year': None,
+                    'player_playlist_max_upload_date_per_year': None,
+                }
+            }
         })
     elif 'instagram.com' in url:
         options.update({
@@ -313,13 +402,38 @@ def download_video():
                 error_msg = str(e)
                 logger.error(f"yt-dlp error: {error_msg}")
                 
-                # Simplified error handling
-                if any(keyword in error_msg.lower() for keyword in ['private', 'unavailable', 'not available']):
-                    return jsonify({'error': 'Video is private or unavailable'}), 400
-                elif 'timeout' in error_msg.lower():
+                # Enhanced error handling for different platforms
+                if 'youtube.com' in url or 'youtu.be' in url:
+                    if 'Video unavailable' in error_msg:
+                        return jsonify({'error': 'This video is unavailable. It may have been removed or made private.'}), 400
+                    elif 'Private video' in error_msg:
+                        return jsonify({'error': 'This video is private and cannot be downloaded.'}), 400
+                    elif 'Sign in' in error_msg:
+                        return jsonify({'error': 'This video requires sign in to access.'}), 400
+                    elif 'age-restricted' in error_msg.lower():
+                        return jsonify({'error': 'This video is age-restricted and cannot be downloaded.'}), 400
+                    elif 'copyright' in error_msg.lower():
+                        return jsonify({'error': 'This video is not available due to copyright restrictions.'}), 400
+                    elif 'region' in error_msg.lower():
+                        return jsonify({'error': 'This video is not available in your region.'}), 400
+                elif 'tiktok.com' in url:
+                    if 'Video unavailable' in error_msg:
+                        return jsonify({'error': 'This TikTok video is unavailable or has been removed.'}), 400
+                    elif 'private' in error_msg.lower():
+                        return jsonify({'error': 'This TikTok video is private.'}), 400
+                elif 'instagram.com' in url:
+                    if 'login' in error_msg.lower():
+                        return jsonify({'error': 'This Instagram post requires login to access.'}), 400
+                    elif 'private' in error_msg.lower():
+                        return jsonify({'error': 'This Instagram post is private.'}), 400
+                
+                # Generic error handling
+                if 'timeout' in error_msg.lower():
                     return jsonify({'error': 'Request timed out. Please try again.'}), 408
+                elif 'network' in error_msg.lower():
+                    return jsonify({'error': 'Network error. Please check your connection and try again.'}), 500
                 else:
-                    return jsonify({'error': 'Download failed. Please check the URL and try again.'}), 400
+                    return jsonify({'error': 'Could not download the video. Please check if the URL is correct and the video is available.'}), 400
 
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
