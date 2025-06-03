@@ -15,11 +15,15 @@ import json
 from datetime import datetime
 from urllib.parse import urlparse
 import time
+import threading
 
 app = Flask(__name__)
 
-# Set up logging
-logging.basicConfig(level=logging.DEBUG)
+# Set up logging with more detailed format
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Create issues directory if it doesn't exist
@@ -69,91 +73,81 @@ def sanitize_filename(filename):
 
 def update_ytdlp():
     try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "yt-dlp"])
+        # Force update to latest version with longer timeout
+        subprocess.check_call([
+            sys.executable, "-m", "pip", "install", 
+            "--upgrade", "--force-reinstall", "yt-dlp"
+        ], timeout=300)  # 5 minute timeout
+        
+        # Verify version
+        import yt_dlp
+        logger.info(f"yt-dlp version: {yt_dlp.version.__version__}")
+        
+        # Check if version is recent enough (2024.03.10 or newer)
+        version_parts = yt_dlp.version.__version__.split('.')
+        if len(version_parts) >= 3:
+            year = int(version_parts[0])
+            month = int(version_parts[1])
+            if year < 2024 or (year == 2024 and month < 3):
+                logger.warning("yt-dlp version is older than 2024.03.10, which may affect downloads")
+        
         return True
-    except subprocess.CalledProcessError:
+    except subprocess.TimeoutExpired:
+        logger.error("yt-dlp update timed out")
         return False
-
-def install_ffmpeg():
-    """Download and install ffmpeg on Windows"""
-    try:
-        # Create ffmpeg directory in the current working directory
-        ffmpeg_dir = os.path.join(os.getcwd(), 'ffmpeg')
-        os.makedirs(ffmpeg_dir, exist_ok=True)
-        
-        # Download ffmpeg
-        logger.info("Downloading ffmpeg...")
-        url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
-        response = requests.get(url)
-        response.raise_for_status()
-        
-        # Extract the zip file
-        logger.info("Extracting ffmpeg...")
-        with zipfile.ZipFile(io.BytesIO(response.content)) as zip_ref:
-            zip_ref.extractall(ffmpeg_dir)
-        
-        # Find the extracted ffmpeg.exe
-        for root, dirs, files in os.walk(ffmpeg_dir):
-            if 'ffmpeg.exe' in files:
-                ffmpeg_path = os.path.join(root, 'ffmpeg.exe')
-                # Copy ffmpeg.exe to the current directory
-                shutil.copy2(ffmpeg_path, os.getcwd())
-                logger.info("ffmpeg installed successfully!")
-                return True
-        
-        logger.error("Could not find ffmpeg.exe in the downloaded files")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to update yt-dlp: {str(e)}")
         return False
-        
     except Exception as e:
-        logger.error(f"Failed to install ffmpeg: {str(e)}")
+        logger.error(f"Error checking yt-dlp version: {str(e)}")
         return False
 
 def check_ffmpeg():
-    """Check if ffmpeg is installed"""
+    """Check if ffmpeg is installed with better error handling"""
     try:
-        subprocess.run(['ffmpeg', '-version'], capture_output=True, check=True)
+        result = subprocess.run(
+            ['ffmpeg', '-version'], 
+            capture_output=True, 
+            check=True, 
+            timeout=30
+        )
+        logger.info("ffmpeg is available")
         return True
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        logger.error("ffmpeg not found. Please ensure ffmpeg is installed on the system.")
+    except subprocess.TimeoutExpired:
+        logger.error("ffmpeg check timed out")
         return False
-
-def debug_formats(url):
-    """Debug function to list available formats"""
-    try:
-        with yt_dlp.YoutubeDL({'listformats': True, 'quiet': False}) as ydl:
-            info = ydl.extract_info(url, download=False)
-            return info
-    except Exception as e:
-        logger.error(f"Error debugging formats: {e}")
-        return None
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        logger.error(f"ffmpeg not found: {e}")
+        return False
 
 class MyLogger:
     def debug(self, msg):
-        logger.debug(msg)
+        logger.debug(f"yt-dlp: {msg}")
     def warning(self, msg):
-        logger.warning(msg)
+        logger.warning(f"yt-dlp: {msg}")
     def error(self, msg):
-        logger.error(msg)
+        logger.error(f"yt-dlp: {msg}")
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
 def get_platform_specific_options(url):
-    """Get platform-specific yt-dlp options"""
+    """Get platform-specific yt-dlp options with production fixes"""
+    
+    # Base options with production-friendly settings
     options = {
-        'format': 'bestvideo[height<=2160][ext=mp4][vcodec!*=av01]+bestaudio[ext=m4a]/bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best',
-        'referer': 'https://www.youtube.com/',
+        'format': 'best[height<=1080]/best',  # Simplified format selection
         'extract_flat': False,
-        'quiet': False,
+        'quiet': True,  # Reduce log noise in production
         'no_warnings': False,
         'nocheckcertificate': True,
         'ignoreerrors': False,
         'no_color': True,
-        'extractor_retries': 5,
-        'socket_timeout': 60,
-        'retries': 10,
-        'fragment_retries': 10,
+        'extractor_retries': 3,  # Reduced retries for faster response
+        'socket_timeout': 30,    # Reduced timeout
+        'retries': 5,            # Reduced retries
+        'fragment_retries': 5,   # Reduced retries
         'skip_unavailable_fragments': True,
         'keepvideo': False,
         'writethumbnail': False,
@@ -162,16 +156,6 @@ def get_platform_specific_options(url):
         'noplaylist': True,
         'merge_output_format': 'mp4',
         'geo_bypass': True,
-        'geo_verification_proxy': None,
-        'postprocessors': [
-            {
-                'key': 'FFmpegVideoConvertor',
-                'preferedformat': 'mp4',
-            },
-            {
-                'key': 'FFmpegMetadata',
-            }
-        ],
         'logger': MyLogger(),
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -181,165 +165,51 @@ def get_platform_specific_options(url):
         }
     }
 
-    # Platform-specific configurations
+    # Platform-specific configurations (simplified)
     if 'tiktok.com' in url:
         options.update({
-            'format': 'bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best',
+            'format': 'best[height<=720]/best',  # Lower quality for TikTok
             'referer': 'https://www.tiktok.com/',
-            'geo_bypass': True,
-            'geo_verification_proxy': None,
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate',
                 'Referer': 'https://www.tiktok.com/',
-                'Origin': 'https://www.tiktok.com',
-                'Sec-Fetch-Site': 'same-origin',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Dest': 'empty',
-            },
-            'extractor_args': {
-                'tiktok': {
-                    'api_hostname': 'api16-normal-c-useast1a.tiktokv.com',
-                    'app_version': '20.2.1',
-                    'device_id': '1',
-                    'manifest_app_version': '20.2.1',
-                    'openudid': '1',
-                    'os_version': '14.8',
-                    'resolution': '1080*1920',
-                    'sys_region': 'US',
-                    'timezone_name': 'America/New_York',
-                    'device_type': 'iPhone',
-                    'device_platform': 'iphone',
-                    'aid': '1233',
-                    'app_language': 'en',
-                    'app_name': 'tiktok_web',
-                    'channel': 'googleplay',
-                    'device_platform': 'web',
-                    'region': 'US',
-                    'sys_region': 'US',
-                    'timezone_name': 'America/New_York',
-                    'carrier_region': 'US',
-                    'carrier_region_v2': '310',
-                    'build_number': '20.2.1',
-                    'timezone_offset': '-14400',
-                    'locale': 'en',
-                    'os_version': '14.8',
-                    'resolution': '1080*1920',
-                    'dpi': '420',
-                    'app_language': 'en',
-                    'language': 'en',
-                    'timezone_name': 'America/New_York',
-                    'ac': 'wifi',
-                    'mcc_mnc': '310260',
-                    'is_my_cn': '0',
-                    'aid': '1233',
-                    'app_name': 'tiktok_web',
-                    'device_platform': 'web',
-                    'region': 'US',
-                    'sys_region': 'US',
-                    'timezone_name': 'America/New_York',
-                    'carrier_region': 'US',
-                    'carrier_region_v2': '310',
-                    'build_number': '20.2.1',
-                    'timezone_offset': '-14400',
-                    'locale': 'en',
-                    'os_version': '14.8',
-                    'resolution': '1080*1920',
-                    'dpi': '420',
-                    'app_language': 'en',
-                    'language': 'en',
-                    'timezone_name': 'America/New_York',
-                    'ac': 'wifi',
-                    'mcc_mnc': '310260',
-                    'is_my_cn': '0',
-                }
             }
         })
     elif 'youtube.com' in url or 'youtu.be' in url:
         options.update({
-            'format': 'bestvideo[height<=2160][ext=mp4][vcodec!*=av01]+bestaudio[ext=m4a]/bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best',
+            'format': 'best[height<=1080]/best',
             'referer': 'https://www.youtube.com/',
-            'geo_bypass': True,
-            'geo_verification_proxy': None,
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate',
-                'Referer': 'https://www.youtube.com/',
-                'Origin': 'https://www.youtube.com',
-            },
-            'extractor_args': {
-                'youtube': {
-                    'skip': ['dash', 'hls'],
-                    'player_client': ['android', 'web'],
-                    'player_skip': ['js', 'configs', 'webpage'],
-                    'player_params': {
-                        'hl': 'en',
-                        'gl': 'US',
-                    }
-                }
-            }
         })
     elif 'instagram.com' in url:
         options.update({
-            'format': 'bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best',
+            'format': 'best[height<=720]/best',  # Lower quality for Instagram
             'referer': 'https://www.instagram.com/',
-            'extract_flat': False,
-            'noplaylist': True,
-            'extract_flat_playlist': False,
-            'geo_bypass': True,
-            'geo_verification_proxy': None,
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate',
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
                 'Referer': 'https://www.instagram.com/',
-                'Origin': 'https://www.instagram.com',
-                'Sec-Fetch-Site': 'same-origin',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Dest': 'empty',
-                'X-IG-App-ID': '936619743392459',
-                'X-ASBD-ID': '198387',
-                'X-IG-WWW-Claim': '0',
-            },
-            'extractor_args': {
-                'instagram': {
-                    'login': None,
-                    'password': None,
-                    'client_id': '936619743392459',
-                    'client_secret': '1c2d3e4f5g6h7i8j9k0l',
-                    'extract_flat': False,
-                    'extract_flat_playlist': False,
-                    'skip': ['dash', 'hls'],
-                    'player_client': ['android', 'web'],
-                    'player_skip': ['js', 'configs', 'webpage'],
-                    'player_params': {
-                        'hl': 'en',
-                        'gl': 'US',
-                    }
-                }
             }
         })
     elif 'twitter.com' in url or 'x.com' in url:
         options.update({
-            'format': 'bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best',
+            'format': 'best[height<=720]/best',
             'referer': 'https://twitter.com/',
-            'geo_bypass': True,
-            'geo_verification_proxy': None,
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate',
-                'Referer': 'https://twitter.com/',
-            }
         })
 
     return options
+
+def cleanup_temp_dir(temp_dir, delay=300):
+    """Cleanup temp directory after delay"""
+    def cleanup():
+        time.sleep(delay)  # Wait 5 minutes
+        try:
+            if temp_dir and os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+                logger.info(f"Cleaned up temporary directory: {temp_dir}")
+        except Exception as e:
+            logger.warning(f"Failed to clean up temp directory: {e}")
+    
+    # Run cleanup in background thread
+    threading.Thread(target=cleanup, daemon=True).start()
 
 @app.route('/download', methods=['POST'])
 def download_video():
@@ -347,238 +217,145 @@ def download_video():
     try:
         # Check for ffmpeg first
         if not check_ffmpeg():
-            return jsonify({'error': 'ffmpeg is required but not installed. Please install ffmpeg manually.'}), 500
+            logger.error("ffmpeg not available")
+            return jsonify({'error': 'Video processing unavailable. Please try again later.'}), 500
 
         url = request.form.get('url', '').strip()
         if not url:
             return jsonify({'error': 'Please provide a URL'}), 400
 
-        logger.info(f"Attempting to download video from URL: {url}")
+        logger.info(f"Processing download request for: {url}")
 
         # Create a temporary directory for downloads
-        temp_dir = tempfile.mkdtemp()
-        logger.debug(f"Created temp directory: {temp_dir}")
+        temp_dir = tempfile.mkdtemp(prefix='video_dl_')
+        logger.info(f"Created temp directory: {temp_dir}")
         
         # Get platform-specific options
         ydl_opts = get_platform_specific_options(url)
-        ydl_opts['outtmpl'] = os.path.join(temp_dir, '%(id)s.%(ext)s')
+        ydl_opts['outtmpl'] = os.path.join(temp_dir, '%(title).50s.%(ext)s')
         
-        # Add additional options for better reliability
+        # Production-specific timeout settings
         ydl_opts.update({
-            'socket_timeout': 120,  # Increased timeout
-            'retries': 20,          # More retries
-            'fragment_retries': 20, # More fragment retries
-            'extractor_retries': 10,
+            'socket_timeout': 60,
+            'retries': 3,
+            'fragment_retries': 3,
+            'extractor_retries': 2,
             'skip_unavailable_fragments': True,
-            'ignoreerrors': True,   # Continue on errors
-            'no_warnings': True,    # Reduce noise
-            'quiet': True,          # Reduce noise
-            'nocheckcertificate': True,
-            'geo_bypass': True,
-            'geo_verification_proxy': None,
-        })
-
-        # Add specific headers for better success rate
-        ydl_opts['http_headers'].update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': '*/*',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
+            'quiet': True,
+            'no_warnings': True,
         })
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
-                # Get video info first with retries
-                max_retries = 3
-                info = None
-                last_error = None
+                logger.info("Extracting video information...")
                 
-                for attempt in range(max_retries):
-                    try:
-                        logger.info(f"Extracting video information (attempt {attempt + 1}/{max_retries})...")
-                        info = ydl.extract_info(url, download=False)
-                        if info:
-                            break
-                    except Exception as e:
-                        last_error = e
-                        logger.warning(f"Extraction attempt {attempt + 1} failed: {str(e)}")
-                        if attempt < max_retries - 1:
-                            time.sleep(2)  # Wait before retrying
+                # Single attempt for info extraction with timeout
+                try:
+                    info = ydl.extract_info(url, download=False)
+                except Exception as e:
+                    logger.error(f"Info extraction failed: {str(e)}")
+                    return jsonify({'error': 'Could not access video. It may be private, geo-blocked, or removed.'}), 400
                 
                 if not info:
-                    error_msg = str(last_error) if last_error else "Unknown error"
-                    logger.error(f"Failed to extract video information after {max_retries} attempts: {error_msg}")
-                    return jsonify({'error': f'Could not extract video information: {error_msg}'}), 400
-                
-                if not isinstance(info, dict):
-                    logger.error(f"Info object is not a dictionary, got: {type(info)}")
-                    return jsonify({'error': 'Invalid video information format'}), 400
+                    return jsonify({'error': 'Video information could not be extracted'}), 400
 
-                # Debug available formats
-                if 'formats' in info:
-                    # Log available formats
-                    formats = info['formats']
-                    logger.info(f"Available formats: {len(formats)}")
-                    for fmt in formats[:5]:  # Log first 5 formats
-                        logger.info(f"Format: {fmt.get('format_id')} - {fmt.get('ext')} - {fmt.get('resolution')} - {fmt.get('vcodec')} - {fmt.get('acodec')}")
-
-                # Extract basic video information safely
+                # Extract video information
                 video_id = info.get('id', str(uuid.uuid4())[:8])
+                raw_title = info.get('title', '') or info.get('description', '')[:50] or f'video_{video_id}'
+                video_title = sanitize_filename(raw_title)
                 
-                # Try to get the caption/description first, fall back to title if not available
-                raw_caption = info.get('description', '') or info.get('caption', '') or info.get('title', f'video_{video_id}')
+                logger.info(f"Video title: {video_title}")
                 
-                # Clean up the caption more aggressively
-                video_caption = sanitize_filename(raw_caption)
-                if not video_caption:
-                    video_caption = f'video_{video_id}'
-                
-                logger.info(f"Raw caption: {raw_caption}")
-                logger.info(f"Cleaned caption: {video_caption}")
-                logger.info(f"Video ID: {video_id}")
-                
-                # Download the video with retries
-                max_retries = 3
-                download_info = None
-                last_error = None
-                
-                for attempt in range(max_retries):
-                    try:
-                        logger.info(f"Starting video download (attempt {attempt + 1}/{max_retries})...")
-                        with yt_dlp.YoutubeDL(ydl_opts) as download_ydl:
-                            download_info = download_ydl.extract_info(url, download=True)
-                        if download_info:
-                            break
-                    except Exception as e:
-                        last_error = e
-                        logger.warning(f"Download attempt {attempt + 1} failed: {str(e)}")
-                        if attempt < max_retries - 1:
-                            time.sleep(2)  # Wait before retrying
-                
-                if not download_info:
-                    error_msg = str(last_error) if last_error else "Unknown error"
-                    logger.error(f"Failed to download video after {max_retries} attempts: {error_msg}")
-                    return jsonify({'error': f'Failed to download video: {error_msg}'}), 500
+                # Download the video
+                logger.info("Starting video download...")
+                try:
+                    download_info = ydl.extract_info(url, download=True)
+                except Exception as e:
+                    logger.error(f"Download failed: {str(e)}")
+                    return jsonify({'error': 'Download failed. The video may be too large or unavailable.'}), 500
 
                 # Find the downloaded file
-                downloaded_files = [f for f in os.listdir(temp_dir) 
-                                  if os.path.isfile(os.path.join(temp_dir, f)) and (f.endswith('.mp4') or f.endswith('.m4v') or f.endswith('.mov'))]
+                downloaded_files = []
+                for f in os.listdir(temp_dir):
+                    if os.path.isfile(os.path.join(temp_dir, f)):
+                        downloaded_files.append(f)
                 
                 if not downloaded_files:
-                    logger.error(f"No downloaded files found in {temp_dir}")
-                    all_files = os.listdir(temp_dir)
-                    logger.error(f"All files in temp dir: {all_files}")
-                    
-                    # For Instagram, try to find any video file
-                    if 'instagram.com' in url:
-                        all_files = [f for f in os.listdir(temp_dir) if os.path.isfile(os.path.join(temp_dir, f))]
-                        logger.info(f"All files in temp dir for Instagram: {all_files}")
-                        if all_files:
-                            downloaded_file_path = os.path.join(temp_dir, all_files[0])
-                            logger.info(f"Using first available file: {all_files[0]}")
-                        else:
-                            return jsonify({'error': 'Video downloaded but file not found. The post might be private or not contain a video.'}), 500
-                    else:
-                        return jsonify({'error': 'Video downloaded but file not found'}), 500
-                else:
-                    # Get the downloaded file
-                    downloaded_file_path = os.path.join(temp_dir, downloaded_files[0])
-                    logger.info(f"Using file: {downloaded_files[0]}")
+                    logger.error("No files downloaded")
+                    return jsonify({'error': 'Download completed but no file found'}), 500
+
+                # Get the first (and likely only) downloaded file
+                downloaded_file_path = os.path.join(temp_dir, downloaded_files[0])
                 
-                # Verify the file has audio streams
-                try:
-                    ffprobe_cmd = ['ffprobe', '-v', 'quiet', '-show_streams', '-select_streams', 'a', downloaded_file_path]
-                    result = subprocess.run(ffprobe_cmd, capture_output=True, text=True)
-                    if result.returncode == 0 and result.stdout.strip():
-                        logger.info("Audio stream detected in downloaded file")
-                    else:
-                        logger.warning("No audio stream detected in downloaded file")
-                except Exception as e:
-                    logger.warning(f"Could not verify audio stream: {e}")
+                # Check file size (limit to 100MB for production)
+                file_size = os.path.getsize(downloaded_file_path)
+                max_size = 100 * 1024 * 1024  # 100MB
+                if file_size > max_size:
+                    logger.warning(f"File too large: {file_size} bytes")
+                    return jsonify({'error': 'Video file is too large for download (max 100MB)'}), 413
+
+                logger.info(f"Sending file: {downloaded_files[0]} ({file_size} bytes)")
                 
-                # Create a response with the file
+                # Create response
                 response = send_file(
                     downloaded_file_path,
                     as_attachment=True,
-                    download_name=f"{video_caption}.mp4",
+                    download_name=f"{video_title}.mp4",
                     mimetype='video/mp4'
                 )
                 
-                # Set the Content-Disposition header directly
-                safe_filename = f"{video_caption}.mp4".replace('"', '\\"')  # Escape quotes
-                response.headers['Content-Disposition'] = f'attachment; filename="{safe_filename}"; filename*=UTF-8\'\'{safe_filename}'
-                
-                # Add cleanup callback to the response
-                @response.call_on_close
-                def cleanup():
-                    try:
-                        if temp_dir and os.path.exists(temp_dir):
-                            shutil.rmtree(temp_dir)
-                            logger.info(f"Cleaned up temporary directory: {temp_dir}")
-                    except Exception as e:
-                        logger.warning(f"Failed to clean up temp directory: {e}")
+                # Schedule cleanup (don't use @response.call_on_close in production)
+                cleanup_temp_dir(temp_dir, delay=60)  # Cleanup after 1 minute
                 
                 return response
 
             except yt_dlp.utils.DownloadError as e:
                 error_msg = str(e)
-                logger.error(f"yt-dlp Download error: {error_msg}")
+                logger.error(f"yt-dlp error: {error_msg}")
                 
-                # Check for specific errors
-                if "Unable to download API page" in error_msg:
-                    return jsonify({'error': 'API access failed. The video might be region-blocked or private.'}), 400
-                elif "getaddrinfo failed" in error_msg:
-                    return jsonify({'error': 'Network connection error. Please check your internet connection.'}), 500
-                elif "Private video" in error_msg:
-                    return jsonify({'error': 'This video is private and cannot be downloaded.'}), 400
-                elif "Video unavailable" in error_msg:
-                    return jsonify({'error': 'This video is unavailable or has been removed.'}), 400
+                # Simplified error handling
+                if any(keyword in error_msg.lower() for keyword in ['private', 'unavailable', 'not available']):
+                    return jsonify({'error': 'Video is private or unavailable'}), 400
+                elif 'timeout' in error_msg.lower():
+                    return jsonify({'error': 'Request timed out. Please try again.'}), 408
                 else:
-                    return jsonify({'error': f'Download failed: {error_msg}'}), 500
-                    
-            except Exception as e:
-                logger.error(f"Unexpected error during download: {str(e)}")
-                return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
+                    return jsonify({'error': 'Download failed. Please check the URL and try again.'}), 400
 
     except Exception as e:
-        logger.error(f"Top-level error: {str(e)}")
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
+        logger.error(f"Unexpected error: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred. Please try again later.'}), 500
+    
+    finally:
+        # Fallback cleanup
+        if temp_dir and os.path.exists(temp_dir):
+            try:
+                cleanup_temp_dir(temp_dir, delay=10)  # Quick cleanup on error
+            except:
+                pass
 
 @app.route('/health')
 def health_check():
-    """Simple health check endpoint"""
-    return jsonify({'status': 'ok', 'message': 'Video downloader is running'})
-
-@app.route('/debug-formats', methods=['POST'])
-def debug_video_formats():
-    """Debug endpoint to check available formats for a URL"""
+    """Enhanced health check"""
     try:
-        url = request.form.get('url', '').strip()
-        if not url:
-            return jsonify({'error': 'Please provide a URL'}), 400
+        # Check yt-dlp
+        import yt_dlp
+        ytdlp_version = yt_dlp.version.__version__
         
-        info = debug_formats(url)
-        if info and 'formats' in info:
-            formats = []
-            for fmt in info['formats']:
-                formats.append({
-                    'format_id': fmt.get('format_id'),
-                    'ext': fmt.get('ext'),
-                    'resolution': fmt.get('resolution'),
-                    'vcodec': fmt.get('vcodec'),
-                    'acodec': fmt.get('acodec'),
-                    'filesize': fmt.get('filesize'),
-                    'tbr': fmt.get('tbr')
-                })
-            return jsonify({'formats': formats})
-        else:
-            return jsonify({'error': 'Could not extract format information'}), 400
-            
+        # Check ffmpeg
+        ffmpeg_available = check_ffmpeg()
+        
+        return jsonify({
+            'status': 'ok',
+            'message': 'Video downloader is running',
+            'yt_dlp_version': ytdlp_version,
+            'ffmpeg_available': ffmpeg_available,
+            'timestamp': datetime.now().isoformat()
+        })
     except Exception as e:
-        return jsonify({'error': f'Debug error: {str(e)}'}), 500
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 @app.route('/report-issue', methods=['POST'])
 def report_issue():
@@ -617,8 +394,32 @@ def report_issue():
 def ads_txt():
     return send_from_directory('static', 'ads.txt')
 
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    return jsonify({'error': 'File too large'}), 413
+
+@app.errorhandler(408)
+def request_timeout(error):
+    return jsonify({'error': 'Request timed out'}), 408
+
 if __name__ == '__main__':
+    logger.info("Starting video downloader application...")
+    
+    # Update yt-dlp before starting the app (optional in production)
+    if os.environ.get('UPDATE_YTDLP', 'false').lower() == 'true':
+        if not update_ytdlp():
+            logger.warning("Failed to update yt-dlp. Continuing with existing version.")
+    
     # Check for ffmpeg before starting the app
     if not check_ffmpeg():
-        logger.error("FFmpeg is not installed. The application may not function correctly.")
-    app.run(host='0.0.0.0', port=port)
+        logger.warning("FFmpeg is not available. Video processing may fail.")
+    
+    # Production vs development settings
+    debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    
+    app.run(
+        host='0.0.0.0', 
+        port=port, 
+        debug=debug_mode,
+        threaded=True  # Enable threading for better performance
+    )
