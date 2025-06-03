@@ -141,8 +141,8 @@ def index():
 def get_platform_specific_options(url):
     """Get platform-specific yt-dlp options"""
     options = {
-        'format': 'bestvideo[height<=2160]+bestaudio/best[height<=2160]/best',  # Default format for highest quality
-        'referer': 'https://www.youtube.com/',  # Default referer
+        'format': 'bestvideo[height<=2160][ext=mp4][vcodec!*=av01]+bestaudio[ext=m4a]/bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best',  # Skip AV1 codec and prefer MP4
+        'referer': 'https://www.youtube.com/',
         'extract_flat': False,
         'quiet': False,
         'no_warnings': False,
@@ -181,12 +181,12 @@ def get_platform_specific_options(url):
     # Platform-specific configurations
     if 'youtube.com' in url or 'youtu.be' in url:
         options.update({
-            'format': 'bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=2160]+bestaudio/best[height<=2160]/best',
+            'format': 'bestvideo[height<=2160][ext=mp4][vcodec!*=av01]+bestaudio[ext=m4a]/bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best',
             'referer': 'https://www.youtube.com/',
         })
     elif 'instagram.com' in url:
         options.update({
-            'format': 'bestvideo[height<=2160]+bestaudio/best[height<=2160]/best',
+            'format': 'bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best',
             'referer': 'https://www.instagram.com/',
             'extract_flat': False,
             'noplaylist': True,
@@ -216,7 +216,7 @@ def get_platform_specific_options(url):
         })
     elif 'twitter.com' in url or 'x.com' in url:
         options.update({
-            'format': 'bestvideo[height<=2160]+bestaudio/best[height<=2160]/best',
+            'format': 'bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best',
             'referer': 'https://twitter.com/',
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
