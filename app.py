@@ -14,6 +14,7 @@ import io
 import json
 from datetime import datetime
 from urllib.parse import urlparse
+import time
 
 app = Flask(__name__)
 
@@ -141,7 +142,7 @@ def index():
 def get_platform_specific_options(url):
     """Get platform-specific yt-dlp options"""
     options = {
-        'format': 'bestvideo[height<=2160][ext=mp4][vcodec!*=av01]+bestaudio[ext=m4a]/bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best',  # Skip AV1 codec and prefer MP4
+        'format': 'bestvideo[height<=2160][ext=mp4][vcodec!*=av01]+bestaudio[ext=m4a]/bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best',
         'referer': 'https://www.youtube.com/',
         'extract_flat': False,
         'quiet': False,
@@ -149,10 +150,10 @@ def get_platform_specific_options(url):
         'nocheckcertificate': True,
         'ignoreerrors': False,
         'no_color': True,
-        'extractor_retries': 3,
-        'socket_timeout': 30,
-        'retries': 5,
-        'fragment_retries': 5,
+        'extractor_retries': 5,
+        'socket_timeout': 60,
+        'retries': 10,
+        'fragment_retries': 10,
         'skip_unavailable_fragments': True,
         'keepvideo': False,
         'writethumbnail': False,
@@ -160,6 +161,8 @@ def get_platform_specific_options(url):
         'writeautomaticsub': False,
         'noplaylist': True,
         'merge_output_format': 'mp4',
+        'geo_bypass': True,
+        'geo_verification_proxy': None,
         'postprocessors': [
             {
                 'key': 'FFmpegVideoConvertor',
@@ -179,10 +182,54 @@ def get_platform_specific_options(url):
     }
 
     # Platform-specific configurations
-    if 'youtube.com' in url or 'youtu.be' in url:
+    if 'tiktok.com' in url:
+        options.update({
+            'format': 'bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best',
+            'referer': 'https://www.tiktok.com/',
+            'geo_bypass': True,
+            'geo_verification_proxy': None,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Referer': 'https://www.tiktok.com/',
+            },
+            'extractor_args': {
+                'tiktok': {
+                    'api_hostname': 'api16-normal-c-useast1a.tiktokv.com',
+                    'app_version': '20.2.1',
+                    'device_id': '1',
+                    'manifest_app_version': '20.2.1',
+                    'openudid': '1',
+                    'os_version': '10',
+                    'resolution': '1080*1920',
+                    'sys_region': 'US',
+                    'timezone_name': 'America/New_York',
+                }
+            }
+        })
+    elif 'youtube.com' in url or 'youtu.be' in url:
         options.update({
             'format': 'bestvideo[height<=2160][ext=mp4][vcodec!*=av01]+bestaudio[ext=m4a]/bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best',
             'referer': 'https://www.youtube.com/',
+            'geo_bypass': True,
+            'geo_verification_proxy': None,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Referer': 'https://www.youtube.com/',
+                'Origin': 'https://www.youtube.com',
+            },
+            'extractor_args': {
+                'youtube': {
+                    'skip': ['dash', 'hls'],
+                    'player_client': ['android', 'web'],
+                    'player_skip': ['js', 'configs', 'webpage'],
+                }
+            }
         })
     elif 'instagram.com' in url:
         options.update({
@@ -191,17 +238,18 @@ def get_platform_specific_options(url):
             'extract_flat': False,
             'noplaylist': True,
             'extract_flat_playlist': False,
+            'geo_bypass': True,
+            'geo_verification_proxy': None,
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.5',
                 'Accept-Encoding': 'gzip, deflate',
                 'Referer': 'https://www.instagram.com/',
-                'Cookie': 'ig_did=1; ig_nrcb=1; ds_user_id=1; sessionid=1; csrftoken=1',
-                'X-IG-App-ID': '936619743392459',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-Instagram-AJAX': '1',
-                'X-ASBD-ID': '198387',
+                'Origin': 'https://www.instagram.com',
+                'Sec-Fetch-Site': 'same-origin',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Dest': 'empty',
             },
             'extractor_args': {
                 'instagram': {
@@ -211,6 +259,9 @@ def get_platform_specific_options(url):
                     'client_secret': '1c2d3e4f5g6h7i8j9k0l',
                     'extract_flat': False,
                     'extract_flat_playlist': False,
+                    'skip': ['dash', 'hls'],
+                    'player_client': ['android', 'web'],
+                    'player_skip': ['js', 'configs', 'webpage'],
                 }
             }
         })
@@ -218,6 +269,8 @@ def get_platform_specific_options(url):
         options.update({
             'format': 'bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best',
             'referer': 'https://twitter.com/',
+            'geo_bypass': True,
+            'geo_verification_proxy': None,
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -251,6 +304,32 @@ def download_video():
         ydl_opts = get_platform_specific_options(url)
         ydl_opts['outtmpl'] = os.path.join(temp_dir, '%(id)s.%(ext)s')
         
+        # Add additional options for better reliability
+        ydl_opts.update({
+            'socket_timeout': 120,  # Increased timeout
+            'retries': 20,          # More retries
+            'fragment_retries': 20, # More fragment retries
+            'extractor_retries': 10,
+            'skip_unavailable_fragments': True,
+            'ignoreerrors': True,   # Continue on errors
+            'no_warnings': True,    # Reduce noise
+            'quiet': True,          # Reduce noise
+            'nocheckcertificate': True,
+            'geo_bypass': True,
+            'geo_verification_proxy': None,
+        })
+
+        # Add specific headers for better success rate
+        ydl_opts['http_headers'].update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+        })
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
                 # Get video info first
@@ -289,10 +368,19 @@ def download_video():
                 logger.info(f"Cleaned caption: {video_caption}")
                 logger.info(f"Video ID: {video_id}")
                 
-                # Download the video
-                logger.info("Starting video download...")
-                with yt_dlp.YoutubeDL(ydl_opts) as download_ydl:
-                    download_info = download_ydl.extract_info(url, download=True)
+                # Download the video with retries
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        logger.info(f"Starting video download (attempt {attempt + 1}/{max_retries})...")
+                        with yt_dlp.YoutubeDL(ydl_opts) as download_ydl:
+                            download_info = download_ydl.extract_info(url, download=True)
+                        break
+                    except Exception as e:
+                        if attempt == max_retries - 1:
+                            raise
+                        logger.warning(f"Download attempt {attempt + 1} failed: {str(e)}")
+                        time.sleep(2)  # Wait before retrying
                 
                 if not download_info or not isinstance(download_info, dict):
                     logger.error(f"Invalid download info: {type(download_info)}")
