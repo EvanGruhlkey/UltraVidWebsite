@@ -159,7 +159,7 @@ def get_platform_specific_options(url):
         'geo_bypass_country': 'US',
         'logger': MyLogger(),
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
             'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.9',
             'Accept-Encoding': 'gzip, deflate',
@@ -174,13 +174,15 @@ def get_platform_specific_options(url):
                 'format': 'best[height<=1080]/best',
                 'referer': 'https://www.youtube.com/shorts/',
                 'http_headers': {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
                     'Accept': '*/*',
                     'Accept-Language': 'en-US,en;q=0.9',
                     'Accept-Encoding': 'gzip, deflate',
                     'Referer': 'https://www.youtube.com/shorts/',
                     'Origin': 'https://www.youtube.com',
-                    'Connection': 'keep-alive'
+                    'Connection': 'keep-alive',
+                    'X-YouTube-Client-Name': '2',
+                    'X-YouTube-Client-Version': '2.20240101.01.00'
                 },
                 'extractor_args': {
                     'youtube': {
@@ -190,6 +192,11 @@ def get_platform_specific_options(url):
                         'player_params': {
                             'hl': 'en',
                             'gl': 'US',
+                            'client': 'ANDROID',
+                            'client_version': '14.01.01',
+                            'device': 'iPhone',
+                            'os_version': '14.8',
+                            'os': 'iOS'
                         }
                     }
                 }
@@ -199,13 +206,15 @@ def get_platform_specific_options(url):
                 'format': 'best[height<=1080]/best',
                 'referer': 'https://www.youtube.com/',
                 'http_headers': {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
                     'Accept': '*/*',
                     'Accept-Language': 'en-US,en;q=0.9',
                     'Accept-Encoding': 'gzip, deflate',
                     'Referer': 'https://www.youtube.com/',
                     'Origin': 'https://www.youtube.com',
-                    'Connection': 'keep-alive'
+                    'Connection': 'keep-alive',
+                    'X-YouTube-Client-Name': '2',
+                    'X-YouTube-Client-Version': '2.20240101.01.00'
                 },
                 'extractor_args': {
                     'youtube': {
@@ -215,6 +224,11 @@ def get_platform_specific_options(url):
                         'player_params': {
                             'hl': 'en',
                             'gl': 'US',
+                            'client': 'ANDROID',
+                            'client_version': '14.01.01',
+                            'device': 'iPhone',
+                            'os_version': '14.8',
+                            'os': 'iOS'
                         }
                     }
                 }
@@ -224,7 +238,7 @@ def get_platform_specific_options(url):
             'format': 'best[height<=720]/best',
             'referer': 'https://www.tiktok.com/',
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
                 'Accept': '*/*',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Accept-Encoding': 'gzip, deflate',
@@ -238,7 +252,7 @@ def get_platform_specific_options(url):
             'format': 'best[height<=720]/best',
             'referer': 'https://www.instagram.com/',
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
                 'Accept': '*/*',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Accept-Encoding': 'gzip, deflate',
@@ -252,7 +266,7 @@ def get_platform_specific_options(url):
             'format': 'best[height<=720]/best',
             'referer': 'https://twitter.com/',
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
                 'Accept': '*/*',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Accept-Encoding': 'gzip, deflate',
