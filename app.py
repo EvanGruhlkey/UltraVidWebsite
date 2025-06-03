@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
 import yt_dlp
 import os
 import tempfile
@@ -447,6 +447,10 @@ def report_issue():
     except Exception as e:
         logger.error(f'Error reporting issue: {str(e)}')
         return jsonify({'error': 'Failed to report issue'}), 500
+
+@app.route('/ads.txt')
+def ads_txt():
+    return send_from_directory('static', 'ads.txt')
 
 if __name__ == '__main__':
     # Check for ffmpeg before starting the app
