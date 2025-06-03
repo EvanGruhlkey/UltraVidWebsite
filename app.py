@@ -228,6 +228,10 @@ def get_platform_specific_options(url):
                     'skip': ['dash', 'hls'],
                     'player_client': ['android', 'web'],
                     'player_skip': ['js', 'configs', 'webpage'],
+                    'player_params': {
+                        'hl': 'en',
+                        'gl': 'US',
+                    }
                 }
             }
         })
@@ -250,6 +254,9 @@ def get_platform_specific_options(url):
                 'Sec-Fetch-Site': 'same-origin',
                 'Sec-Fetch-Mode': 'cors',
                 'Sec-Fetch-Dest': 'empty',
+                'X-IG-App-ID': '936619743392459',
+                'X-ASBD-ID': '198387',
+                'X-IG-WWW-Claim': '0',
             },
             'extractor_args': {
                 'instagram': {
@@ -262,6 +269,10 @@ def get_platform_specific_options(url):
                     'skip': ['dash', 'hls'],
                     'player_client': ['android', 'web'],
                     'player_skip': ['js', 'configs', 'webpage'],
+                    'player_params': {
+                        'hl': 'en',
+                        'gl': 'US',
+                    }
                 }
             }
         })
@@ -332,14 +343,27 @@ def download_video():
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
-                # Get video info first
-                logger.info("Extracting video information...")
-                info = ydl.extract_info(url, download=False)
+                # Get video info first with retries
+                max_retries = 3
+                info = None
+                last_error = None
                 
-                # Validate info object
+                for attempt in range(max_retries):
+                    try:
+                        logger.info(f"Extracting video information (attempt {attempt + 1}/{max_retries})...")
+                        info = ydl.extract_info(url, download=False)
+                        if info:
+                            break
+                    except Exception as e:
+                        last_error = e
+                        logger.warning(f"Extraction attempt {attempt + 1} failed: {str(e)}")
+                        if attempt < max_retries - 1:
+                            time.sleep(2)  # Wait before retrying
+                
                 if not info:
-                    logger.error("No video information extracted")
-                    return jsonify({'error': 'Could not extract video information. The URL might be invalid or the video might be private.'}), 400
+                    error_msg = str(last_error) if last_error else "Unknown error"
+                    logger.error(f"Failed to extract video information after {max_retries} attempts: {error_msg}")
+                    return jsonify({'error': f'Could not extract video information: {error_msg}'}), 400
                 
                 if not isinstance(info, dict):
                     logger.error(f"Info object is not a dictionary, got: {type(info)}")
@@ -370,21 +394,26 @@ def download_video():
                 
                 # Download the video with retries
                 max_retries = 3
+                download_info = None
+                last_error = None
+                
                 for attempt in range(max_retries):
                     try:
                         logger.info(f"Starting video download (attempt {attempt + 1}/{max_retries})...")
                         with yt_dlp.YoutubeDL(ydl_opts) as download_ydl:
                             download_info = download_ydl.extract_info(url, download=True)
-                        break
+                        if download_info:
+                            break
                     except Exception as e:
-                        if attempt == max_retries - 1:
-                            raise
+                        last_error = e
                         logger.warning(f"Download attempt {attempt + 1} failed: {str(e)}")
-                        time.sleep(2)  # Wait before retrying
+                        if attempt < max_retries - 1:
+                            time.sleep(2)  # Wait before retrying
                 
-                if not download_info or not isinstance(download_info, dict):
-                    logger.error(f"Invalid download info: {type(download_info)}")
-                    return jsonify({'error': 'Failed to download video'}), 500
+                if not download_info:
+                    error_msg = str(last_error) if last_error else "Unknown error"
+                    logger.error(f"Failed to download video after {max_retries} attempts: {error_msg}")
+                    return jsonify({'error': f'Failed to download video: {error_msg}'}), 500
 
                 # Find the downloaded file
                 downloaded_files = [f for f in os.listdir(temp_dir) 
